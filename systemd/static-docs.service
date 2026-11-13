@@ -1,0 +1,15 @@
+[Unit]
+Description=Static Documentation Mirror Service
+After=network.target
+
+[Service]
+User=homelab
+Group=homelab
+WorkingDirectory=/opt/homelab/services/static-docs
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

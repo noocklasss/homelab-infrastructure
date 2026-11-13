@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Runs the Immich Machine Learning worker inside a rootless bubblewrap (bwrap)
+# container sandbox on the workstation node, with 60-second idle model unloading.
+set -euo pipefail
+
+ROOTFS="${IMMICH_ML_ROOTFS:-$HOME/.local/share/immich-ml/rootfs}"
+CACHE="${IMMICH_ML_CACHE:-$HOME/.local/share/immich-ml/cache}"
+mkdir -p "$CACHE" "$ROOTFS/cache" "$ROOTFS/tmp"
+
+exec /usr/bin/bwrap \
+  --bind "$ROOTFS" / \
+  --dev /dev \
+  --proc /proc \
+  --tmpfs /tmp \
+  --ro-bind /etc/resolv.conf /etc/resolv.conf \
+  --bind "$CACHE" /cache \
+  --chdir /usr/src \
+  --setenv PATH /opt/venv/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  --setenv VIRTUAL_ENV /opt/venv \
+  --setenv PYTHONPATH /usr/src \
+  --setenv PYTHONDONTWRITEBYTECODE 1 \
+  --setenv PYTHONUNBUFFERED 1 \
+  --setenv DEVICE "${DEVICE:-cpu}" \
+  --setenv MACHINE_LEARNING_MODEL_ARENA false \
+  --setenv MACHINE_LEARNING_CACHE_FOLDER /cache \
+  --setenv TRANSFORMERS_CACHE /cache \
+  --setenv HF_HOME /cache/hf-cache \
+  --setenv MACHINE_LEARNING_MODEL_REVISION v2 \
+  --setenv MACHINE_LEARNING_MODEL_TTL "${MACHINE_LEARNING_MODEL_TTL:-60}" \
+  --setenv MACHINE_LEARNING_HOST 127.0.0.1 \
+  --setenv MACHINE_LEARNING_PORT "${MACHINE_LEARNING_PORT:-3003}" \
+  /opt/venv/bin/python -m immich_ml

@@ -1,0 +1,14 @@
+[Unit]
+Description=FFmpeg Web UI Service
+After=network.target
+
+[Service]
+User=homelab
+Group=homelab
+WorkingDirectory=/opt/homelab/services/ffmpeg-ui
+ExecStart=/opt/homelab/services/ffmpeg-ui/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

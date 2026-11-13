@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Establishes a persistent SSH reverse tunnel from the workstation's local ML
+# worker (127.0.0.1:3003) to the home server and bridges it to 0.0.0.0:3003
+# so Docker containers can reach it via host-gateway without firewall openings.
+set -euo pipefail
+
+REMOTE_HOST="${IMMICH_SERVER_SSH_HOST:-homeserver}"
+LOCAL_PORT="${MACHINE_LEARNING_PORT:-3003}"
+TUNNEL_PORT="${IMMICH_TUNNEL_INTERNAL_PORT:-13003}"
+
+exec ssh -o BatchMode=yes \
+  -o ServerAliveInterval=15 \
+  -o ServerAliveCountMax=3 \
+  -o ExitOnForwardFailure=yes \
+  -R "127.0.0.1:${TUNNEL_PORT}:127.0.0.1:${LOCAL_PORT}" \
+  "$REMOTE_HOST" "python3 -c '
+import asyncio
+
+async def pipe(reader, writer):
+    try:
+        while data := await reader.read(65536):
+            writer.write(data)
+            await writer.drain()
+    except Exception:
+        pass
+    finally:
+        try:
+            writer.close()
+        except Exception:
+            pass
+
+async def handle(client_reader, client_writer):
+    try:
+        srv_reader, srv_writer = await asyncio.open_connection(\"127.0.0.1\", ${TUNNEL_PORT})
+        await asyncio.gather(pipe(client_reader, srv_writer), pipe(srv_reader, client_writer))
+    except Exception:
+        try:
+            client_writer.close()
+        except Exception:
+            pass
+
+async def main():
+    server = await asyncio.start_server(handle, \"0.0.0.0\", ${LOCAL_PORT}, reuse_address=True)
+    async with server:
+        await server.serve_forever()
+
+asyncio.run(main())
+'"

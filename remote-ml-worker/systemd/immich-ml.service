@@ -1,0 +1,11 @@
+[Unit]
+Description=Immich Remote Machine Learning Worker (bwrap)
+After=network.target
+
+[Service]
+ExecStart=%h/.local/bin/immich-ml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

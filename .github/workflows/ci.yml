@@ -1,0 +1,38 @@
+name: Infrastructure CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck on operational scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+
+      - name: Validate Docker Compose configurations
+        run: |
+          cp stacks/immich/.env.example stacks/immich/.env
+          docker compose -f stacks/immich/docker-compose.yml config -q
+          docker compose -f stacks/maintenance/docker-compose.yml config -q
+          rm -f stacks/immich/.env
+
+      - name: Secret and hygiene guard
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$|\.(pem|key|crt|p12)$'; then
+            echo "Error: Secret or certificate file is tracked in Git!"
+            exit 1
+          fi
+          if grep -rnE "BEGIN (OPENSSH|RSA|EC|PRIVATE) KEY" --exclude-dir=.git .; then
+            echo "Error: Private key material detected!"
+            exit 1
+          fi

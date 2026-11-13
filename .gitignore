@@ -1,0 +1,32 @@
+# Environment & Secrets
+.env
+*.env
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# Backups & Database Dumps
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.bak
+
+# Runtime & Container Data
+library/
+postgres/
+rootfs/
+cache/
+persisted-state/
+*.log
+*.pid
+*.sock
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

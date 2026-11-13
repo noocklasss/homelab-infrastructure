@@ -1,0 +1,12 @@
+[Unit]
+Description=Immich Remote ML SSH Reverse Tunnel to Home Server
+After=network-online.target immich-ml.service
+Requires=immich-ml.service
+
+[Service]
+ExecStart=%h/.local/bin/immich-ml-tunnel
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
