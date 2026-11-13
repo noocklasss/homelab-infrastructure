@@ -3,6 +3,10 @@
 # worker (127.0.0.1:3003) to the home server and bridges it to the Docker bridge
 # address (default 172.17.0.1:3003), so containers reach it via host-gateway while
 # the rest of the network cannot.
+# Without a terminal, the remote bridge outlives a dropped SSH connection and would keep the port: each new
+# tunnel therefore first stops any earlier bridge, found by its argument immich-ml-bridge. That word never
+# appears whole in the remote shell's own command line ([i] in the pattern, 'bri''dge' in the argument),
+# so pkill cannot match the shell that is starting the new bridge.
 set -euo pipefail
 
 REMOTE_HOST="${IMMICH_SERVER_SSH_HOST:-homeserver}"
@@ -15,7 +19,7 @@ exec ssh -o BatchMode=yes \
   -o ServerAliveCountMax=3 \
   -o ExitOnForwardFailure=yes \
   -R "127.0.0.1:${TUNNEL_PORT}:127.0.0.1:${LOCAL_PORT}" \
-  "$REMOTE_HOST" "python3 -c '
+  "$REMOTE_HOST" "pkill -f '[i]mmich-ml-bridge'; sleep 1; exec python3 -c '
 import asyncio
 
 async def pipe(reader, writer):
@@ -47,4 +51,4 @@ async def main():
         await server.serve_forever()
 
 asyncio.run(main())
-'"
+' 'immich-ml-bri''dge'"
