@@ -3,14 +3,16 @@ name: immich
 services:
   immich-server:
     container_name: immich_server
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3}
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3.4.1}
     volumes:
       - ${UPLOAD_LOCATION}:/data
       - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
+    # Published on localhost only; Nginx (reverse-proxy/nginx/immich.conf) terminates TLS in front of it.
+    # Set IMMICH_BIND_ADDRESS=0.0.0.0 in .env only if clients must reach :2283 directly.
     ports:
-      - '2283:2283'
+      - '${IMMICH_BIND_ADDRESS:-127.0.0.1}:2283:2283'
     # Route ML inference requests to the host gateway, where an SSH reverse tunnel
     # forwards traffic to the remote workstation's rootless bwrap ML worker.
     extra_hosts:

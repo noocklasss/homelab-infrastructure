@@ -10,5 +10,15 @@ ExecStart=/opt/homelab/services/media-api/venv/bin/uvicorn app:app --host 127.0.
 Restart=always
 RestartSec=5
 
+# Hardening that suits a web app writing only under /opt/homelab: check with `systemd-analyze security <unit>`.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
 [Install]
 WantedBy=multi-user.target

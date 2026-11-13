@@ -3,7 +3,9 @@ name: maintenance
 services:
   watchtower:
     container_name: watchtower
-    image: nickfedor/watchtower:latest
+    # Pinned by digest and upgraded by hand. --label-enable: it only updates containers that opt in with the label
+    # com.centurylinklabs.watchtower.enable=true; the Immich stack does not, so Immich upgrades stay deliberate.
+    image: nickfedor/watchtower@sha256:e96976bcbeaf0a9adeddc9016a539c27a2245ef6bb7d3ca97ed106783350d387
     command:
       - --cleanup
       - --label-enable

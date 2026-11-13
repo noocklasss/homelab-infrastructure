@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Establishes a persistent SSH reverse tunnel from the workstation's local ML
-# worker (127.0.0.1:3003) to the home server and bridges it to 0.0.0.0:3003
-# so Docker containers can reach it via host-gateway without firewall openings.
+# worker (127.0.0.1:3003) to the home server and bridges it to the Docker bridge
+# address (default 172.17.0.1:3003), so containers reach it via host-gateway while
+# the rest of the network cannot.
 set -euo pipefail
 
 REMOTE_HOST="${IMMICH_SERVER_SSH_HOST:-homeserver}"
 LOCAL_PORT="${MACHINE_LEARNING_PORT:-3003}"
 TUNNEL_PORT="${IMMICH_TUNNEL_INTERNAL_PORT:-13003}"
+BRIDGE_ADDRESS="${IMMICH_BRIDGE_ADDRESS:-172.17.0.1}"  # docker0 on the server = host-gateway
 
 exec ssh -o BatchMode=yes \
   -o ServerAliveInterval=15 \
@@ -40,7 +42,7 @@ async def handle(client_reader, client_writer):
             pass
 
 async def main():
-    server = await asyncio.start_server(handle, \"0.0.0.0\", ${LOCAL_PORT}, reuse_address=True)
+    server = await asyncio.start_server(handle, \"${BRIDGE_ADDRESS}\", ${LOCAL_PORT}, reuse_address=True)
     async with server:
         await server.serve_forever()
 

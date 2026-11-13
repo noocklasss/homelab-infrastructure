@@ -22,7 +22,7 @@ Instead of downgrading Immich or keeping an expensive desktop online 24/7:
 2. **Rootless `bubblewrap` (`bwrap`) sandbox on the workstation**: Exported the official `immich-machine-learning:v3` OCI rootfs to `~/.local/share/immich-ml/rootfs` and execute `/opt/venv/bin/python -m immich_ml` inside an unprivileged user namespace on `127.0.0.1:3003` without requiring a local Docker daemon or root privileges.
 3. **Zero idle resource overhead**: Configured `MACHINE_LEARNING_MODEL_TTL=60`, so ONNX models automatically unload from workstation RAM 60 seconds after a search or upload completes.
 4. **Zero-trust SSH reverse tunnel (`immich-ml-tunnel`)**:
-   - The workstation initiates an outbound SSH reverse tunnel (`-R 127.0.0.1:13003:127.0.0.1:3003`) to the home server and runs a lightweight `asyncio` TCP bridge on `0.0.0.0:3003`.
+   - The workstation initiates an outbound SSH reverse tunnel (`-R 127.0.0.1:13003:127.0.0.1:3003`) to the home server and runs a lightweight `asyncio` TCP bridge on the Docker bridge address (`172.17.0.1:3003`, set with `IMMICH_BRIDGE_ADDRESS`), reachable from containers but not from the rest of the network.
    - `immich_server` resolves `http://immich-machine-learning:3003` via Docker's `extra_hosts: ["immich-machine-learning:host-gateway"]`.
    - No inbound ports need to be opened in the workstation's `ufw` firewall, and `sshd` on the server does not require `GatewayPorts yes`.
 

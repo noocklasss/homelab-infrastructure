@@ -6,16 +6,20 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-validate:
     runs-on: ubuntu-latest
 
     steps:
+      # Actions are pinned to a full commit SHA (the tag is in the comment), so a moved tag cannot change what CI runs.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run ShellCheck on operational scripts
-        uses: ludeeus/action-shellcheck@master
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
         with:
           scandir: '.'
 
@@ -26,13 +30,34 @@ jobs:
           docker compose -f stacks/maintenance/docker-compose.yml config -q
           rm -f stacks/immich/.env
 
-      - name: Secret and hygiene guard
+      - name: Check systemd unit syntax
         run: |
-          if git ls-files | grep -E '(^|/)\.env$|\.(pem|key|crt|p12)$'; then
-            echo "Error: Secret or certificate file is tracked in Git!"
+          for unit in systemd/*.service remote-ml-worker/systemd/*.service; do
+            if systemd-analyze verify "$unit" 2>&1 | grep -E 'Unknown (key|section)|Failed to parse'; then
+              exit 1
+            fi
+          done
+
+      - name: Hygiene guard (no env files, keys or certificates tracked)
+        run: |
+          if git ls-files | grep -E '(^|/)[^/]*\.env$|\.(pem|key|crt|p12)$'; then
+            echo "Error: secret or certificate file is tracked in Git!"
             exit 1
           fi
           if grep -rnE "BEGIN (OPENSSH|RSA|EC|PRIVATE) KEY" --exclude-dir=.git .; then
-            echo "Error: Private key material detected!"
+            echo "Error: private key material detected!"
             exit 1
           fi
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (every commit, not only the latest)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
